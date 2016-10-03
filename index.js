@@ -57,8 +57,8 @@ function crunsh(argv){
         }
     });
     $("link").each(function(){
-        var src = $(this).attr("href");
-        if (src !== undefined){
+        var src = $(this).attr("href"); 
+        if (src !== undefined && src.toLowerCase().slice(src.length - 4, src.length) === ".css"){
             cli.log("try fetch", src);
             if (fs.existsSync(path.join(dir, src))){
                 css += fs.readFileSync(path.join(dir, src)).toString() + "\n";
