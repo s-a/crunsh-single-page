@@ -1,12 +1,12 @@
 {
   "name": "crunsh-single-page",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "dev": "node index.js c:/git/film/dev/index.html --outfolder c:/git/film/public",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "bump": "npm version patch && git push && git push --tags && npm publish" 
+    "bump": "npm version patch && git push && git push --tags && npm publish"
   },
   "bin": {
     "crunsh": "index.js"
