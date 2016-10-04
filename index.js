@@ -98,14 +98,44 @@ function crunsh(argv){
     fs.writeFileSync(cssTarget, minifiedCss);
 
 
-    cli.stdout(cli.color.yellow("minify html...\n"));
-    var minify = require("html-minifier").minify;
-    $("body").html(minify($("body").html(), htmlMinifyOptions));
-    $("head").html(minify($("head").html(), htmlMinifyOptions));
-    cli.stdout(cli.color.white("write html " + htmlTarget + "\n"));
-    fs.writeFileSync(htmlTarget, $.html());
+    var finalize = function(){
+        cli.stdout(cli.color.yellow("minify html...\n"));
+        var minify = require("html-minifier").minify;
+        $("body").html(minify($("body").html(), htmlMinifyOptions));
+        $("head").html(minify($("head").html(), htmlMinifyOptions));
+        cli.stdout(cli.color.white("write html " + htmlTarget + "\n"));
+        fs.writeFileSync(htmlTarget, $.html());
+        cli.stdout(cli.color.green("done.\n"));
+    };
 
-    cli.stdout(cli.color.green("done.\n"));
+    var packageJson = path.join(dir, "package.json");
+    if (fs.existsSync(packageJson)){
+        cli.stdout(cli.color.green("found " + packageJson + "...\n"));        
+        cli.stdout(cli.color.yellow("try to bump version of " + packageJson + " ...\n"));
+        var npm = require("npm");
+        npm.load({
+            loaded: false,
+            prefix: dir
+        }, function (err) {
+          npm.commands.version(["patch"], function (er, data) {
+            if (er){
+                throw new cli.Error(er);
+            } else {
+                var packageJsonObject = require(packageJson);
+                cli.stdout(cli.color.yellow("Add author " + packageJsonObject.author + " to HTML.\n"));        
+                $("head").append("<meta name=\"author\" content=\"" + packageJsonObject.author + "\">");  
+
+                cli.stdout(cli.color.yellow("Add version " + packageJsonObject.version + " to HTML.\n"));        
+                $("head").append("<meta name=\"version\" content=\"" + packageJsonObject.version + "\">");  
+
+                finalize();
+            }
+          });
+        });
+    } else {
+        finalize();
+    }
+
 }
 
 cli.on(function(){

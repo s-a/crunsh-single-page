@@ -26,6 +26,7 @@
     "cheerio": "^0.22.0",
     "html-minifier": "^3.1.0",
     "n-cli": "^1.0.7",
+    "npm": "^3.10.8",
     "pretty-error": "^2.0.1",
     "uglify-js": "^2.7.3",
     "uglifycss": "0.0.21"
