@@ -1,8 +1,6 @@
 #!/usr/bin/env node
  
-"use strict";
- 
-
+"use strict"; 
 
 var hbAttrWrapOpen = /\{\{#[^}]+\}\}/;
 var hbAttrWrapClose = /\{\{\/[^}]+\}\}/;
@@ -46,60 +44,68 @@ function crunsh(argv){
     $("script:not([src=''])").each(function(){
         var src = $(this).attr("src");
         if (src !== undefined){
-            cli.log("try fetch", src);
+            cli.stdout(cli.color.yellow("try fetch " + src + "...\n"));
             if (fs.existsSync(path.join(dir, src))){
                 js += fs.readFileSync(path.join(dir, src)).toString() + "\n";
-                cli.log("remove", src, " from HTML");
+                cli.stdout(cli.color.white("remove " + src + " from HTML\n"));
                 $(this).remove();
             } else {
-                cli.log("skip", src);
+                cli.stdout(cli.color.red("skip " + src + "\n"));
             }
         }
     });
     $("link").each(function(){
         var src = $(this).attr("href"); 
         if (src !== undefined && src.toLowerCase().slice(src.length - 4, src.length) === ".css"){
-            cli.log("try fetch", src);
+            cli.stdout(cli.color.cyan("try fetch " + src + "...\n"));
             if (fs.existsSync(path.join(dir, src))){
                 css += fs.readFileSync(path.join(dir, src)).toString() + "\n";
-                cli.log("remove", src, " from HTML");
+                cli.stdout(cli.color.white("remove " + src + " from HTML\n"));
                 $(this).remove();
             } else {
-                cli.log("skip", src);
+                cli.stdout(cli.color.red("skip " + src + "\n"));
             }
         }
     });
+
+
+    cli.stdout(cli.color.green("minify assets.\n"));
 
     var cssTarget = path.join(outputFolder, "style.css");
     var jsTarget = path.join(outputFolder, "app.js");
     var htmlTarget = path.join(outputFolder, "index.html");
 
-    cli.log("minify js", jsTarget);
+    cli.stdout(cli.color.yellow("minify js...\n"));
     var UglifyJS = require("uglify-js");
     js = UglifyJS.minify(js, {
         mangle: true,
         fromString: true
     }); 
-    cli.log("write js", jsTarget);
+    cli.stdout(cli.color.white("write js " + jsTarget + "\n"));
     $("body").append("<script src=\"app.js\" charset=\"utf-8\"></script>");
     fs.writeFileSync(jsTarget, js.code);
 
 
 
-
+    cli.stdout(cli.color.yellow("minify css...\n"));
     $("head").append("<link rel=\"stylesheet\" href=\"style.css\">");
     var uglifycss = require("uglifycss"); 
     var minifiedCss = uglifycss.processString(css, { 
         maxLineLen: 500, 
         expandVars: true 
     }); 
+    cli.stdout(cli.color.white("write css " + cssTarget + "\n"));
     fs.writeFileSync(cssTarget, minifiedCss);
 
 
+    cli.stdout(cli.color.yellow("minify html...\n"));
     var minify = require("html-minifier").minify;
     $("body").html(minify($("body").html(), htmlMinifyOptions));
     $("head").html(minify($("head").html(), htmlMinifyOptions));
+    cli.stdout(cli.color.white("write html " + htmlTarget + "\n"));
     fs.writeFileSync(htmlTarget, $.html());
+
+    cli.stdout(cli.color.green("done.\n"));
 }
 
 cli.on(function(){
