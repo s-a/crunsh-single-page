@@ -108,7 +108,7 @@ function crunsh(argv){
         cli.stdout(cli.color.green("done.\n"));
     };
 
-    var packageJson = path.join(dir, "package.json");
+    var packageJson = cli.resolvePath(path.join(dir, "package.json"));
     if (fs.existsSync(packageJson)){
         cli.stdout(cli.color.green("found " + packageJson + "...\n"));        
         cli.stdout(cli.color.yellow("try to bump version of " + packageJson + " ...\n"));
