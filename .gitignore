@@ -266,3 +266,5 @@ __pycache__/
 /coverage
 /deployager__deployager_rsa.pem
 /deployager__deployager_rsa
+/public
+/yarn.lock

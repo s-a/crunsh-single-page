@@ -2,6 +2,14 @@
  
 "use strict"; 
 
+var CLI = require("n-cli");
+var cli = new CLI({
+    silent: false,
+    handleUncaughtException : true,
+    runcom : ".crunshrc"
+});
+
+
 var hbAttrWrapOpen = /\{\{#[^}]+\}\}/;
 var hbAttrWrapClose = /\{\{\/[^}]+\}\}/;
 var hbAttrWrapPair = [hbAttrWrapOpen, hbAttrWrapClose];
@@ -20,24 +28,25 @@ var htmlMinifyOptions = {
     removeEmptyAttributes : false,
     removeOptionalTags : false,
     removeEmptyElements : false 
-}
-
-var CLI = require("n-cli");
-var cli = new CLI({
-    silent: false,
-    handleUncaughtException : true
-});
-
-
+};
+var jsMinifyOptions = {
+    mangle: true,
+    beautify: false,
+    fromString: true
+};
+var cssMinifyOptions = { 
+    maxLineLen: 500, 
+    expandVars: true 
+};
 var fs = require("fs");
 var path = require("path");
 var cheerio = require("cheerio");
  
-function crunsh(argv){
+function crunsh (argv){
     var js = "";
     var css = "";
     var inputFilename = argv._[0];
-    var outputFolder = argv.notNull("outputfolder");
+    var outputFolder = cli.resolvePath(argv.notNull("outputfolder"));
     var dir = path.dirname(inputFilename);
     var $ = cheerio.load(fs.readFileSync(inputFilename));
 
@@ -46,7 +55,7 @@ function crunsh(argv){
         if (src !== undefined){
             cli.stdout(cli.color.yellow("try fetch " + src + "...\n"));
             if (fs.existsSync(path.join(dir, src))){
-                js += fs.readFileSync(path.join(dir, src)).toString() + "\n";
+                js += ";"+fs.readFileSync(path.join(dir, src)).toString() + "\n";
                 cli.stdout(cli.color.white("remove " + src + " from HTML\n"));
                 $(this).remove();
             } else {
@@ -71,29 +80,25 @@ function crunsh(argv){
 
     cli.stdout(cli.color.green("minify assets.\n"));
 
-    var cssTarget = path.join(outputFolder, "style.css");
-    var jsTarget = path.join(outputFolder, "app.js");
-    var htmlTarget = path.join(outputFolder, "index.html");
+    var cssTarget = (path.join(outputFolder, "style.css"));
+    var jsTarget = (path.join(outputFolder, "app.js"));
+    var htmlTarget = (path.join(outputFolder, "index.html"));
 
     cli.stdout(cli.color.yellow("minify js...\n"));
     var UglifyJS = require("uglify-js");
-    js = UglifyJS.minify(js, {
-        mangle: true,
-        fromString: true
-    }); 
+    if (jsMinifyOptions.mangle === true){
+        js = UglifyJS.minify(js, jsMinifyOptions); 
+    }
     cli.stdout(cli.color.white("write js " + jsTarget + "\n"));
     $("body").append("<script src=\"app.js\" charset=\"utf-8\"></script>");
-    fs.writeFileSync(jsTarget, js.code);
+    fs.writeFileSync(jsTarget, js.code || js);
 
 
 
     cli.stdout(cli.color.yellow("minify css...\n"));
     $("head").append("<link rel=\"stylesheet\" href=\"style.css\">");
     var uglifycss = require("uglifycss"); 
-    var minifiedCss = uglifycss.processString(css, { 
-        maxLineLen: 500, 
-        expandVars: true 
-    }); 
+    var minifiedCss = uglifycss.processString(css, cssMinifyOptions); 
     cli.stdout(cli.color.white("write css " + cssTarget + "\n"));
     fs.writeFileSync(cssTarget, minifiedCss);
 
@@ -117,20 +122,21 @@ function crunsh(argv){
             loaded: false,
             prefix: dir
         }, function (err) {
-          npm.commands.version(["patch"], function (er, data) {
-            if (er){
-                throw new cli.Error(er);
-            } else {
-                var packageJsonObject = require(packageJson);
-                cli.stdout(cli.color.yellow("Add author " + packageJsonObject.author + " to HTML.\n"));        
-                $("head").append("<meta name=\"author\" content=\"" + packageJsonObject.author + "\">");  
+            if (err) throw new cli.Error(err);
+            npm.commands.version(["patch"], function (er, data) {
+                if (er){
+                    throw new cli.Error(er);
+                } else {
+                    var packageJsonObject = require(packageJson);
+                    cli.stdout(cli.color.yellow("Add author " + packageJsonObject.author + " to HTML.\n"));        
+                    $("head").append("<meta name=\"author\" content=\"" + packageJsonObject.author + "\">");  
 
-                cli.stdout(cli.color.yellow("Add version " + packageJsonObject.version + " to HTML.\n"));        
-                $("head").append("<meta name=\"version\" content=\"" + packageJsonObject.version + "\">");  
+                    cli.stdout(cli.color.yellow("Add version " + packageJsonObject.version + " to HTML.\n"));        
+                    $("head").append("<meta name=\"version\" content=\"" + packageJsonObject.version + "\">");  
 
-                finalize();
-            }
-          });
+                    finalize();
+                }
+            });
         });
     } else {
         finalize();
@@ -138,14 +144,39 @@ function crunsh(argv){
 
 }
 
-cli.on(function(){
-    
-    var f = this.argv._[0];
-    if (!f){
-        throw new cli.Error("missing-parameter", "<path-and-filename-to-html-file>");
+cli.on(function(){ 
+    if (this.argv._.length !== 0){
+        var f = this.argv._[0];
+        if (!f){
+            throw new cli.Error("missing-parameter", "<path-and-filename-to-html-file>");
+        }
+        if (!fs.existsSync(f)){
+            throw new cli.Error("file-not-found", f);
+        }
+        crunsh(this.argv);
     }
-    if (!fs.existsSync(f)){
-        throw new cli.Error("file-not-found", f);
+}); 
+
+cli.runcom(function(rc){ 
+        console.log(this.argv._)
+    if (this.argv._.length === 0){
+        if (!rc.settings.inputfile){
+            throw new cli.Error("missing-property-inputfile", rc.fullpath);
+        }
+        if (!rc.settings.outputfolder){
+            throw new cli.Error("missing-property-outputfolder", rc.fullpath);
+        }
+
+        htmlMinifyOptions = rc.settings.html || htmlMinifyOptions;
+        jsMinifyOptions = rc.settings.js || jsMinifyOptions;
+        cssMinifyOptions = rc.settings.css || cssMinifyOptions;
+
+        this.argv._[0] = rc.settings.inputfile;
+        this.argv.outputfolder = rc.settings.outputfolder;
+        crunsh(this.argv);      
     }
-    crunsh(this.argv);
-});
+}); 
+
+
+
+

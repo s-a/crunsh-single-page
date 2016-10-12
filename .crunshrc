@@ -1,0 +1,29 @@
+{
+   "js" : {
+       "mangle": true,
+       "beautify": false,
+       "fromString": true
+   },
+   "css" : {
+       "maxLineLen": 500,
+       "expandVars": true
+   },
+   "html": {
+       "customAttrSurround": [["/\\{\\{#[^}]+\\}\\}/", "/\\{\\{\\/[^}]+\\}\\}/"]],
+       "removeComments" : true,
+       "html5" : true,
+       "preserveLineBreaks" : false,
+       "processScripts" : ["text/x-handlebars-template"],
+       "removeCommentsFromCDATA" : true,
+       "collapseWhitespace" : true,
+       "collapseBooleanAttributes" : false,
+       "removeAttributeQuotes" : false,
+       "removeRedundantAttributes" : false,
+       "useShortDoctype" : true,
+       "removeEmptyAttributes" : false,
+       "removeOptionalTags" : false,
+       "removeEmptyElements" : false
+   },
+   "inputfile" : "c:/git/film/dev/index.html",
+   "outputfolder" : "./public/"
+}
